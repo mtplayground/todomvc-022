@@ -4,11 +4,17 @@ pub mod router;
 pub mod state;
 
 use leptos::*;
+use wasm_bindgen::prelude::wasm_bindgen;
 
 use crate::components::footer::Footer;
 use crate::components::header::Header;
 use crate::components::todo_list::TodoList;
 use crate::state::TodoState;
+
+#[wasm_bindgen(start)]
+pub fn main() {
+    mount_to_body(App);
+}
 
 #[component]
 pub fn App() -> impl IntoView {
