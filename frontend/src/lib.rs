@@ -4,13 +4,28 @@ pub mod state;
 
 use leptos::*;
 
+use crate::components::footer::Footer;
+use crate::components::header::Header;
+use crate::components::todo_list::TodoList;
+use crate::state::TodoState;
+
 #[component]
 pub fn App() -> impl IntoView {
+    let state = TodoState::new();
+
+    // Load todos on mount
+    let set_todos = state.set_todos;
+    spawn_local(async move {
+        if let Ok(todos) = api::fetch_todos().await {
+            set_todos.set(todos);
+        }
+    });
+
     view! {
         <section class="todoapp">
-            <header class="header">
-                <h1>"todos"</h1>
-            </header>
+            <Header state=state />
+            <TodoList state=state />
+            <Footer state=state />
         </section>
         <footer class="info">
             <p>"Double-click to edit a todo"</p>
