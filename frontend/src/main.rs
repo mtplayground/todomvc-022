@@ -1,3 +1,6 @@
+use leptos::*;
+use frontend::App;
+
 fn main() {
-    frontend::app();
+    mount_to_body(App);
 }
