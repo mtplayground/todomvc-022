@@ -1,5 +1,6 @@
 pub mod api;
 pub mod components;
+pub mod router;
 pub mod state;
 
 use leptos::*;
@@ -12,6 +13,7 @@ use crate::state::TodoState;
 #[component]
 pub fn App() -> impl IntoView {
     let state = TodoState::new();
+    router::init_router(state);
 
     // Load todos on mount
     let set_todos = state.set_todos;
