@@ -1,3 +1,6 @@
+pub mod db;
+pub mod model;
+
 use axum::{routing::get, Router};
 use tower_http::cors::{Any, CorsLayer};
 use tower_http::services::ServeDir;
