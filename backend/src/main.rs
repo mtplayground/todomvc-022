@@ -2,7 +2,7 @@ pub mod api;
 pub mod db;
 pub mod model;
 
-use axum::routing::get;
+use axum::routing::{delete, get, patch};
 use axum::Router;
 use sqlx::sqlite::SqlitePoolOptions;
 use tower_http::cors::{Any, CorsLayer};
@@ -36,7 +36,10 @@ async fn main() {
         .allow_headers(Any);
 
     let api = Router::new()
-        .route("/todos", get(api::list_todos).post(api::create_todo));
+        .route("/todos", get(api::list_todos).post(api::create_todo))
+        .route("/todos/completed", delete(api::delete_completed))
+        .route("/todos/toggle-all", patch(api::toggle_all))
+        .route("/todos/:id", patch(api::update_todo).delete(api::delete_todo));
 
     let app = Router::new()
         .route("/health", get(health))
