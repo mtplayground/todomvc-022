@@ -1,0 +1,78 @@
+# TodoMVC Architecture Plan
+## Leptos CSR + Axum + SQLite
+
+## Project Structure
+```
+Cargo.toml                  # Workspace: members = ["backend", "frontend"]
+backend/
+  Cargo.toml                # axum, tower-http, sqlx (sqlite), serde, tokio
+  migrations/
+    001_create_todos.sql    # todos table
+  src/
+    main.rs                 # Axum server, static file serving, CORS, router
+    model.rs                # Todo struct (serde + sqlx derives)
+    db.rs                   # CRUD: create, get_all, update, delete, delete_completed, toggle_all
+    api.rs                  # REST handlers wired to db functions
+  tests/
+    api_tests.rs            # Integration tests with in-memory SQLite
+frontend/
+  Cargo.toml                # leptos (csr), gloo-net, serde, wasm-bindgen
+  Trunk.toml                # Trunk config
+  index.html                # Entry point with TodoMVC CSS CDN links
+  src/
+    lib.rs                  # App root component, mount point
+    api.rs                  # HTTP client (gloo-net) for all backend calls
+    state.rs                # Reactive signals: todo list, current filter
+    router.rs               # hashchange listener, filter enum
+    components/
+      mod.rs
+      header.rs             # <header> with h1 + new-todo input
+      todo_item.rs          # <li> with toggle, label, destroy, inline edit
+      todo_list.rs          # <section.main> with toggle-all + <ul.todo-list>
+      footer.rs             # <footer.footer> with count, filter links, clear completed
+```
+
+## Shared Types
+- `Todo { id: i64, title: String, completed: bool }` — defined in backend model.rs
+- Frontend duplicates the struct for deserialization (no shared crate needed for CSR)
+- `CreateTodo { title: String }`, `UpdateTodo { title: Option<String>, completed: Option<bool> }`
+
+## API Design
+```
+GET    /api/todos              → Vec<Todo>
+POST   /api/todos              → Todo          (body: CreateTodo)
+PATCH  /api/todos/:id          → Todo          (body: UpdateTodo)
+DELETE /api/todos/:id          → 204
+DELETE /api/todos/completed     → 204
+PATCH  /api/todos/toggle-all   → Vec<Todo>
+GET    /health                 → 200 "ok"
+```
+
+## Issue Dependency Graph
+```
+#1 (workspace init)
+├── #2 (Trunk/Leptos CSR)
+│   └── #8 (API client + state)
+│       ├── #9 (Header component)
+│       ├── #10 (TodoItem display/toggle/delete)
+│       │   └── #11 (TodoItem inline editing)
+│       └── #12 (TodoList + Footer)
+│           └── #13 (Hash routing)
+├── #3 (Axum backend)
+│   └── #4 (sqlx + migration)
+│       └── #5 (Todo model + db functions)
+│           └── #6 (create + list endpoints)
+│               └── #7 (update/delete/bulk endpoints)
+└─────────────────────────────────────────────── #14 (E2E integration, needs #7 + #13)
+                                                  └── #15 (API tests)
+                                                  └── #16 (README + CI)
+```
+
+## Key Design Decisions
+1. **CSR-only Leptos** — no SSR, Trunk builds WASM, Axum serves static dist/
+2. **SQLite via sqlx** — simple, file-based, migrations via sqlx-cli or embedded
+3. **gloo-net for HTTP** — lightweight WASM-compatible HTTP client
+4. **Hash-based routing** — `#/`, `#/active`, `#/completed` per TodoMVC spec
+5. **No shared crate** — frontend and backend define Todo separately (simpler for CSR)
+6. **Axum state** — SqlitePool shared via Axum's State extractor
+7. **TodoMVC CSS from CDN** — todomvc-app-css and todomvc-common stylesheets
